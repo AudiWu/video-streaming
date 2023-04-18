@@ -2,12 +2,21 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { createWriteStream } from "fs";
 import { Form } from "multiparty";
-import { streamVideo } from "./video";
+import { createReadStream, stat } from "fs";
+import { promisify } from "util";
+import PocketBase from "pocketbase";
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT;
+
+const pb = new PocketBase("http://127.0.0.1:8090");
+
+const authData = await pb.admins.authWithPassword(
+  process.env.POCKET_BASE_EMAIL,
+  process.env.POCKET_BASE_PASSWORD
+);
 
 app.get("/", (req: Request, res: Response) => {
   res.writeHead(200, { "Content-Type": "text/html" });
@@ -33,9 +42,17 @@ app.post("/upload", (req: Request, res: Response) => {
   form.parse(req);
 });
 
+app.get("/video",async (req: Request, res: Response) => {
+  const records = await pb.collection("videos").getFullList({
+    sort: "-created",
+  });
 
-app.get("/video", (req: Request, res: Response) => {
-  streamVideo(req, res);
+  const videoInfo = records[0];
+
+  const videoId = videoInfo.id;
+  const videoName = videoInfo.video;
+
+  res.redirect(`http://127.0.0.1:8090/api/files/videos/${videoId}/${videoName}`);
 });
 
 app.listen(port, () => {
