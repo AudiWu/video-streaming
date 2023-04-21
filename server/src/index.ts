@@ -42,17 +42,24 @@ app.post("/upload", (req: Request, res: Response) => {
   form.parse(req);
 });
 
-app.get("/video",async (req: Request, res: Response) => {
+app.get("/videos", async (req: Request, res: Response) => {
   const records = await pb.collection("videos").getFullList({
     sort: "-created",
   });
 
-  const videoInfo = records[0];
+  res.status(200).json(records);
+});
 
-  const videoId = videoInfo.id;
-  const videoName = videoInfo.video;
+app.get("/video/:id", async (req: Request, res: Response) => {
+  console.log(req.params.id);
 
-  res.redirect(`http://127.0.0.1:8090/api/files/videos/${videoId}/${videoName}`);
+  const record = await pb
+    .collection("videos")
+    .getOne(req.params.id, { expand: "relField1,relField2.subRelField" });
+
+  const { id, video } = record;
+
+  res.redirect(`http://127.0.0.1:8090/api/files/videos/${id}/${video}`);
 });
 
 app.listen(port, () => {
