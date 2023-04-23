@@ -1,10 +1,10 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
-import { createWriteStream } from "fs";
-import { Form } from "multiparty";
-import { createReadStream, stat } from "fs";
-import { promisify } from "util";
 import PocketBase from "pocketbase";
+
+const HTTP_STATUS_MESSAGE: Record<number, string> = {
+  500: "Internal server Error",
+}
 
 dotenv.config();
 
@@ -27,39 +27,45 @@ app.get("/", (req: Request, res: Response) => {
       </form>`);
 });
 
-app.post("/upload", (req: Request, res: Response) => {
-  let form = new Form();
+app.get("/videos", async (req: Request, res: Response) => {
+  try {
+    const records = await pb.collection("videos").getFullList({
+      sort: "-created",
+    });
 
-  form.on("part", (part) => {
-    part
-      .pipe(createWriteStream(`assets/uploads/${part.filename}`))
-      .on("close", () => {
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(`<h1>File Uploaded: ${part.filename}</h1>`);
-      });
-  });
-
-  form.parse(req);
+    res.status(200).json(records);
+  } catch {
+    res.status(500).send(HTTP_STATUS_MESSAGE[500]);
+  }
 });
 
-app.get("/videos", async (req: Request, res: Response) => {
-  const records = await pb.collection("videos").getFullList({
-    sort: "-created",
-  });
+app.post("/video/upload", async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
 
-  res.status(200).json(records);
+    await pb.collection("videos").create(data);
+
+    res.status(204);
+  } catch {
+    res.status(500).send(HTTP_STATUS_MESSAGE[500]);
+  }
 });
 
 app.get("/video/:id", async (req: Request, res: Response) => {
-  console.log(req.params.id);
+  try {
+    const record = await pb
+      .collection("videos")
+      .getOne(req.params.id, { expand: "relField1,relField2.subRelField" });
 
-  const record = await pb
-    .collection("videos")
-    .getOne(req.params.id, { expand: "relField1,relField2.subRelField" });
+    const { id, video } = record;
+    const videoUrl = `http://127.0.0.1:8090/api/files/videos/${id}/${video}`;
 
-  const { id, video } = record;
-
-  res.redirect(`http://127.0.0.1:8090/api/files/videos/${id}/${video}`);
+    res.status(200).json({
+      url: videoUrl,
+    });
+  } catch {
+    res.status(500).send(HTTP_STATUS_MESSAGE[500]);
+  }
 });
 
 app.listen(port, () => {

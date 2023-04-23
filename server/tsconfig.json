@@ -1,20 +1,29 @@
 {
   "compilerOptions": {
     "module": "ESNext",
+    "lib": [
+      "ESNext"
+    ],
+    "target": "ESNext",
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
-    "target": "ES2017",
     "noImplicitAny": true,
-    "moduleResolution": "node",
     "sourceMap": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "*": [
-        "node_modules/*"
-      ]
-    }
+    "baseUrl": "src",
   },
   "include": [
     "src/**/*"
-  ]
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
 }
